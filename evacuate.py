@@ -139,7 +139,7 @@ def main():
     '''
     # set up and parse commandline arguments
     parser = ArgumentParser()
-    parser.add_argument('-i', '--input', type=str, default='floor.txt.pkl',
+    parser.add_argument('-i', '--input', type=str, default='in/floor.txt.pkl',
                         help='input floor plan file (default:floor.txt.pkl)')
     parser.add_argument('-n', '--numpeople', type=int, default=10,
                         help='number of people in the simulation (default:10)')
