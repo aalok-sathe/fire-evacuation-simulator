@@ -15,6 +15,7 @@ import simulus
 import sys
 import pickle
 import random
+import pprint
 # from floorplan.floorplan import FloorGUI
 from argparse import ArgumentParser
 try:
@@ -26,6 +27,8 @@ except ImportError:
 from person import Person
 from bottleneck import Bottleneck
 
+
+pp = pprint.PrettyPrinter(indent=4).pprint
 
 class Floor:
     sim = None
@@ -131,6 +134,10 @@ class Floor:
 
 
 def main():
+    '''
+    driver method for this file
+    '''
+    # set up and parse commandline arguments
     parser = ArgumentParser()
     parser.add_argument('-i', '--input', type=str, default='floor.txt.pkl',
                         help='input floor plan file (default:floor.txt.pkl)')
@@ -139,12 +146,15 @@ def main():
     parser.add_argument('-s', '--random_state', type=int, default=8675309,
                         help='aka. seed (default:8675309)')
     args = parser.parse_args()
+    # output them as a make-sure-this-is-what-you-meant
+    print('commandline arguments:', args, '\n')
 
 
+    # load the graph representation of some floor plan
     with open(args.input, 'rb') as f:
         graph = pickle.load(f)
-    n = args.numpeople
 
+    # set up random streams
     streams = [Generator(PCG64(args.random_state, i)) for i in range(4)]
     loc_strm, strat_strm, rate_strm, inst_strm = streams
     
@@ -153,9 +163,11 @@ def main():
     rate_generator = lambda: abs(rate_strm.normal(1, .5))
     uniform_generator = lambda: inst_strm.uniform()
 
-    floor = Floor(graph, n, location_sampler, strategy_generator,
+    # create an instance of Floor
+    floor = Floor(graph, args.numpeople, location_sampler, strategy_generator,
                   rate_generator, uniform_generator)
 
+    # call the simulate method to run the actual simulation
     # floor.simulate() 
 
 
