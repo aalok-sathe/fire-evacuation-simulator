@@ -1,4 +1,4 @@
-# building evacuation simulation
+# agent-based building evacuation simulation
 
 final project for cs326 simulation
 
@@ -8,6 +8,27 @@ Usage
 `python3 evacuate.py`
 
 For help: `python3 evacuate.py -h`
+
+
+Model
+---
+We model a floor plan as a 2D grid. A cell neighbors four other cells (top, bottom, left, right).
+Each cell has attributes: it can be normal (N), wall (W), bottleneck (B), fire (F), safe zone (S), or people (P).
+
+The goal is for as many people to get to the safe zones, away from danger's reach. 
+To solve this problem, we represent this 2D grid using a graph with nodes and edges between adjacent nodes (neighbors). 
+People may move between adjacent nodes. Each person has their own movement strategy, and implements a move() method that
+returns a location. The actual simulation is agnostic of the implementation of this method, allowing for agent-based
+modeling experiments. In our case, we consider some baseline strategies: a person will choose to move towards the closest safe
+zone with a certain probability, and away from it with the remaining chance. Additionally, agents move at different rates,
+congruent to real-world scenario.
+A bottleneck is any constricted pathway allowing the passage of only a finite amount of persons in unit time. 
+For simplicity, we will consider this limit to be 1. There may be multiple bottlenecks. Exits are ideally bottlenecks, 
+otherwise the simulation would not be meaningful or purposeful.
+
+The simulation may run for a max time T, allowing questions such as survival rate; percent people out of danger, 
+or until everyone escapes, allowing for studying mean escape time, and time after which most people escape after individual
+variability.
 
 
 Expected directory structure
