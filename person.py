@@ -33,18 +33,16 @@ class Person:
         self.loc = loc
 
 
-    def move(self, graph, sim):
+    def move(self, graph):
         '''
         when this person has finished their current movement, we must schedule
         the next one
         ---
         graph (dict): a dictionary-like graph storing the floor plan according
                       to our specification
-        sim: instance of a simulus simulator
 
         return: tuple, location the agent decided to move to 
         '''
-
         return None, None
 
 
