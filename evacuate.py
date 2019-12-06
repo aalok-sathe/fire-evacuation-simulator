@@ -93,12 +93,6 @@ class Floor:
         
         self.r, self.c = r+1, c+1
         
-        # self.gui = FloorGUI(self.r, self.c)
-        # self.gui.setup()
-        # self.gui.window.Read(timeout=0)
-        # self.gui.load(self.graph)
-        # self.gui.window.Read(timeout=1000)
-
         print(
               '='*79,
               'initialized a {}x{} floor with {} people in {} locations'.format(
@@ -107,6 +101,23 @@ class Floor:
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
               '='*79, sep='\n'
              )
+
+
+    def visualize(self, t=10000):
+        '''
+        '''
+        try:
+            from floorplan.floorplan import FloorGUI
+            self.gui = FloorGUI(self.r, self.c)
+            self.gui.setup()
+            self.gui.window.Read(timeout=0)
+            self.gui.load(self.graph)
+            print('displaying for {}s. click X to close earlier.'.format(t/1e3))
+            self.gui.window.Read(timeout=t)
+        except ImportError:
+            print('ERR: make sure you have the floorplan module containing '
+                  'the FloorGUI class and try again')
+
 
 
     def update_bottlenecks(self):
@@ -167,6 +178,7 @@ def main():
     floor = Floor(graph, args.numpeople, location_sampler, strategy_generator,
                   rate_generator, uniform_generator)
 
+    floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
     # floor.simulate() 
 
