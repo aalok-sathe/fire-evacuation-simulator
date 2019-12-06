@@ -15,6 +15,7 @@ import simulus
 import sys
 import pickle
 import random
+# from floorplan.floorplan import FloorGUI
 from argparse import ArgumentParser
 try:
     from randomgen import PCG64, RandomGenerator as Generator
@@ -29,6 +30,7 @@ from bottleneck import Bottleneck
 class Floor:
     sim = None
     graph = None
+    gui = None
     r = None
     c = None
 
@@ -69,7 +71,10 @@ class Floor:
         av_locs = []
         bottleneck_locs = []
         # W, F, S, B, P, N = 'WFSBPN'
+        r, c = 0, 0
         for loc, attrs in self.graph.items():
+            r = max(r, loc[0])
+            c = max(c, loc[1])
             if attrs['P']: av_locs += [loc] 
             elif attrs['B']: bottleneck_locs += [loc]
 
@@ -82,6 +87,23 @@ class Floor:
         for loc in bottleneck_locs:
             b = Bottleneck(loc)            
             self.bottlenecks += [b]
+        
+        self.r, self.c = r+1, c+1
+        
+        # self.gui = FloorGUI(self.r, self.c)
+        # self.gui.setup()
+        # self.gui.window.Read(timeout=0)
+        # self.gui.load(self.graph)
+        # self.gui.window.Read(timeout=1000)
+
+        print(
+              '='*79,
+              'initialized a {}x{} floor with {} people in {} locations'.format(
+                    self.r, self.c, len(self.people), len(av_locs)
+                  ),
+              'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
+              '='*79, sep='\n'
+             )
 
 
     def update_bottlenecks(self):
