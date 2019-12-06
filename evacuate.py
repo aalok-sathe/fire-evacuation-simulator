@@ -73,7 +73,7 @@ class Floor:
         
         av_locs = []
         bottleneck_locs = []
-        # W, F, S, B, P, N = 'WFSBPN'
+        
         r, c = 0, 0
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
@@ -81,6 +81,7 @@ class Floor:
             if attrs['P']: av_locs += [loc] 
             elif attrs['B']: bottleneck_locs += [loc]
 
+        assert len(av_locs) > 0, 'ERR: no people placement locations in input'
         for i in range(self.numpeople):
             p = Person(self.rate_generator(),
                        self.strategy_generator(),
