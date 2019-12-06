@@ -3,6 +3,13 @@
 final project for cs326 simulation
 
 
+Usage
+---
+`python3 evacuate.py`
+
+For help: `python3 evacuate.py -h`
+
+
 Pipeline (potential idea)
 ---
 1. Parse a floor plan
