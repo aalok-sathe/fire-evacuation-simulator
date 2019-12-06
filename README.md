@@ -10,7 +10,37 @@ Usage
 For help: `python3 evacuate.py -h`
 
 
-Pipeline (potential idea)
+Expected directory structure
+---
+```
+./
+├── bottleneck.py
+├── evacuate.py
+├── person.py
+│
+├── floorplan
+│   ├── floorplan.py
+│   ├── __init__.py
+│   ├── README.md
+│   └── requirements.txt
+│
+├── in
+│   └── floor.txt.pkl
+│
+├── README.md
+└── requirements.txt
+```
+
+
+People
+---
+- Nick B
+- Matthew J
+- Aalok S
+
+
+
+[Scratch work; WIP; to be updated] Pipeline (potential idea)
 ---
 1. Parse a floor plan
 2. Preprocess building floor as a graph: locate people spots, danger locs;
@@ -27,18 +57,3 @@ Pipeline (potential idea)
     - Persons outside building after max time T
     - Amount of time taken based on number of people
     - Evenly distributed/clustered people in an area? 
- 
-
-In this repository
----
-1. `floorparse.py`
-2. `preprocess.py`
-3. `simulation.py`
-4. `main.py`
-
-
-People
----
-- Nick B
-- Matthew J
-- Aalok S
