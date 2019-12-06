@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 This is the main file in the evacuation simulation project.
 people: Nick B., Matthew J., Aalok S.
@@ -8,19 +10,27 @@ Also in this file, we proceed to provide a main method so that this file is
 meaningfully callable to run a simulation experiment
 '''
 
+# stdlib imports
 import simulus 
 import sys
-#import random
-from randomgen import PCG64
+import pickle
+import random
 from argparse import ArgumentParser
+try:
+    from randomgen import PCG64, RandomGenerator as Generator
+except ImportError:
+    from randomgen import PCG64, Generator
 
 # local project imports
 from person import Person
 from bottleneck import Bottleneck
 
+
 class Floor:
     sim = None
     graph = None
+    r = None
+    c = None
 
     numpeople = 0
 
@@ -28,7 +38,9 @@ class Floor:
     people = []
 
     def __init__(self, graph, n, location_sampler=random.sample,
-                 strategy_generator=lambda: random.uniform(.5, 1.)):
+                 strategy_generator=lambda: random.uniform(.5, 1.),
+                 rate_generator=lambda: abs(random.normalvariate(1, .5)),
+                 uniform_generator=random.uniform):
         '''
         constructor method
         ---
@@ -36,18 +48,40 @@ class Floor:
                       specification
         n (int): number of people in the simulation
         '''
-        self.sim = simulus.simulation()
+        self.sim = simulus.simulator()
         self.graph = graph
         self.numpeople = n
 
-        setup()
+        self.location_sampler = location_sampler
+        self.strategy_generator = strategy_generator
+        self.rate_generator = rate_generator
+        self.uniform_generator = uniform_generator
+
+        self.setup()
 
 
     def setup(self):
         '''
+        once we have the parameters and random variate generation methods from
+        __init__, we can proceed to create instances of: people and bottlenecks
         '''
+        
+        av_locs = []
+        bottleneck_locs = []
+        # W, F, S, B, P, N = 'WFSBPN'
+        for loc, attrs in self.graph.items():
+            if attrs['P']: av_locs += [loc] 
+            elif attrs['B']: bottleneck_locs += [loc]
 
-        pass
+        for i in range(self.numpeople):
+            p = Person(self.rate_generator(),
+                       self.strategy_generator(),
+                       self.location_sampler(av_locs))
+            self.people += [p]
+
+        for loc in bottleneck_locs:
+            b = Bottleneck(loc)            
+            self.bottlenecks += [b]
 
 
     def update_bottlenecks(self):
@@ -55,47 +89,52 @@ class Floor:
         handles the bottleneck zones on the grid, where people cannot all pass
         at once. for simplicity, bottlenecks are treated as queues
         '''
-            sim.sched(updateBottleNecks, offset = 1)
-            pass
+        raise NotImplementedError
 
 
-positions = []
-bottlenecks = []
-for i in numPeople:
-	people.append(person.Person(
-		random.uniform(0.5, 4), 
-		random.uniform(0.5, 1.0), 
-		*random.sample(positions, 1))
+    def update_people(self):
+        '''
+        handles scheduling an update for each person, by calling move() on them.
+        move will return a location decided by the person, and this method will
+        handle the simulus scheduling part to keep it clean
+        '''
+        raise NotImplementedError
+       
 
+    def simulate(self, *args):
+        '''
+        '''
+        raise NotImplementedError
 
-#start simulation (simulus)
-
-#update bottlenecks 
-sim.sched(updateBottleNecks, offset = 1)
-
-#schedule initial movements for each Person() using their rate 
-for i in numPeople:
-	sim.sched(people[i].move, graph, sim, offset = people[i].rate)
 
 
 def main():
     parser = ArgumentParser()
     parser.add_argument('-i', '--input', type=str, default='floor.txt.pkl',
-                        help='input floor plan file')
-    parser.add_argument('-n', '--numpeople', type=int, default=1000,
-                        help='number of people in the simulation')
+                        help='input floor plan file (default:floor.txt.pkl)')
+    parser.add_argument('-n', '--numpeople', type=int, default=10,
+                        help='number of people in the simulation (default:10)')
     parser.add_argument('-s', '--random_state', type=int, default=8675309,
-                        help='aka. seed')
+                        help='aka. seed (default:8675309)')
     args = parser.parse_args()
 
 
-    strat_strm, loc_strm, inst_strm = [PCG64(args.random_state, i) 
-                                       for i in range(3)]
-    strategy_generator = lambda: strat_strm.uniform(.5, 1)
+    with open(args.input, 'rb') as f:
+        graph = pickle.load(f)
+    n = args.numpeople
+
+    streams = [Generator(PCG64(args.random_state, i)) for i in range(4)]
+    loc_strm, strat_strm, rate_strm, inst_strm = streams
+    
     location_sampler = loc_strm.choice
+    strategy_generator = lambda: strat_strm.uniform(.5, 1)
+    rate_generator = lambda: abs(rate_strm.normal(1, .5))
     uniform_generator = lambda: inst_strm.uniform()
 
-    floor = Floor()
+    floor = Floor(graph, n, location_sampler, strategy_generator,
+                  rate_generator, uniform_generator)
+
+    # floor.simulate() 
 
 
 if __name__ == '__main__':
