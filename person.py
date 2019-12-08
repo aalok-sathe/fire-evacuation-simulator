@@ -30,10 +30,10 @@ class Person:
         '''
         self.rate = rate
         self.strategy = strategy
-        self.loc = loc
+        self.loc = tuple(loc)
 
 
-    def move(self, graph):
+    def move(self, nbrs):
         '''
         when this person has finished their current movement, we must schedule
         the next one
@@ -43,7 +43,17 @@ class Person:
 
         return: tuple, location the agent decided to move to 
         '''
-        return None, None
+        nbrs = [(loc, attrs) for loc, attrs in nbrs if attrs['F'] == 0]
+
+        loc, attrs = min(nbrs, key=lambda tup: tup[1]['distS'])
+        print('Person at {} is moving to {}'.format(self.loc, loc))
+        self.loc = loc
+        if attrs['S']:
+            self.safe = True
+        elif attrs['F']:
+            self.alive = False
+
+        return loc
 
 
 
