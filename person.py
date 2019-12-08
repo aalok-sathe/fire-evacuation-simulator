@@ -46,7 +46,7 @@ class Person:
         nbrs = [(loc, attrs) for loc, attrs in nbrs if attrs['F'] == 0]
 
         loc, attrs = min(nbrs, key=lambda tup: tup[1]['distS'])
-        print('Person at {} is moving to {}'.format(self.loc, loc))
+        # print('Person at {} is moving to {}'.format(self.loc, loc))
         self.loc = loc
         if attrs['S']:
             self.safe = True
