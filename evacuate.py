@@ -127,9 +127,9 @@ class Floor:
         handles the bottleneck zones on the grid, where people cannot all pass
         at once. for simplicity, bottlenecks are treated as queues
         '''
-        #for i in range(len(self.bottlenecks)):
-            #self.bottlenecks[i].exitBottleNeck()
-        self.bottlenecks[0].exitBottleNeck(self.sim)
+        for i in range(len(self.bottlenecks)):
+            self.bottlenecks[i].exitBottleNeck(self.sim)
+        # self.sim.sched(self.update_bottlenecks(), offset = 10)
         # raise NotImplementedError
 
 
@@ -145,9 +145,8 @@ class Floor:
     def simulate(self, *args):
         '''
         '''
-        self.bottlenecks[0].enterBottleNeck(self.people[0])
-        self.update_bottlenecks()
-        # raise NotImplementedError
+        # self.update_bottlenecks()
+        raise NotImplementedError
 
 
 
