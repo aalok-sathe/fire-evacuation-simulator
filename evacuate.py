@@ -38,8 +38,10 @@ class Floor:
     c = None
 
     numpeople = 0
+    numdead = 0
+    numsafe = 0
 
-    bottlenecks = []
+    bottlenecks = dict()#[]
     people = []
 
     def __init__(self, graph, n, location_sampler=random.sample,
@@ -90,7 +92,7 @@ class Floor:
 
         for loc in bottleneck_locs:
             b = Bottleneck(loc)            
-            self.bottlenecks += [b]
+            self.bottlenecks[loc] = b
         
         self.r, self.c = r+1, c+1
         
@@ -129,20 +131,47 @@ class Floor:
         raise NotImplementedError
 
 
-    def update_people(self):
+    def update_person(self, person_ix):
         '''
         handles scheduling an update for each person, by calling move() on them.
         move will return a location decided by the person, and this method will
         handle the simulus scheduling part to keep it clean
         '''
-        raise NotImplementedError
-       
+        p = self.people[person_ix]
+        if not p.alive:
+            self.numdead += 1
+            print('Person at {} is now DED'.format(p.loc))
+            return
+        if p.safe:
+            self.numsafe += 1
+            print('Person at {} is now SAFE'.format(p.loc))
+            return
+
+        loc = p.loc
+        square = self.graph[loc]
+        nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
+        
+        target = p.move(nbrs)
+        square = self.graph[target]
+        if square['B']:
+            b = self.bottlenecks[target]
+            b.enterBottleNeck(p)
+        else:
+            self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
+         
 
     def simulate(self, *args):
         '''
+        sets up initial scheduling and calls the sim.run() method in simulus
         '''
-        raise NotImplementedError
-
+        # set initial movements of all the people
+        for i, p in enumerate(self.people):
+            loc = tuple(p.loc)
+            square = self.graph[loc]
+            nbrs = square['nbrs']
+            self.sim.sched(self.update_person, i, offset=1/p.rate)
+        
+        self.sim.run()
 
 
 def main():
@@ -179,10 +208,16 @@ def main():
     floor = Floor(graph, args.numpeople, location_sampler, strategy_generator,
                   rate_generator, uniform_generator)
 
-    floor.visualize(t=5000)
+    # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    # floor.simulate() 
-
+    floor.simulate() 
+    
+    print('STATS')
+    print('{} people saved out of {} in time {:.3f}'.format(
+            floor.numsafe,
+            floor.numpeople,
+            floor.sim.now
+        ))
 
 if __name__ == '__main__':
     main()
