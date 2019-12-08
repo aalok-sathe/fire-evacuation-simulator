@@ -11,7 +11,7 @@ meaningfully callable to run a simulation experiment
 '''
 
 # stdlib imports
-import simulus 
+import simulus
 import sys
 import pickle
 import random
@@ -70,15 +70,15 @@ class Floor:
         once we have the parameters and random variate generation methods from
         __init__, we can proceed to create instances of: people and bottlenecks
         '''
-        
+
         av_locs = []
         bottleneck_locs = []
-        
+
         r, c = 0, 0
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
             c = max(c, loc[1])
-            if attrs['P']: av_locs += [loc] 
+            if attrs['P']: av_locs += [loc]
             elif attrs['B']: bottleneck_locs += [loc]
 
         assert len(av_locs) > 0, 'ERR: no people placement locations in input'
@@ -89,11 +89,11 @@ class Floor:
             self.people += [p]
 
         for loc in bottleneck_locs:
-            b = Bottleneck(loc)            
+            b = Bottleneck(loc)
             self.bottlenecks += [b]
-        
+
         self.r, self.c = r+1, c+1
-        
+
         print(
               '='*79,
               'initialized a {}x{} floor with {} people in {} locations'.format(
@@ -108,13 +108,14 @@ class Floor:
         '''
         '''
         try:
-            from floorplan.floorplan import FloorGUI
-            self.gui = FloorGUI(self.r, self.c)
-            self.gui.setup()
-            self.gui.window.Read(timeout=0)
-            self.gui.load(self.graph)
-            print('displaying for {}s. click X to close earlier.'.format(t/1e3))
-            self.gui.window.Read(timeout=t)
+            print()
+            # from floorplan.floorplan import FloorGUI
+            # self.gui = FloorGUI(self.r, self.c)
+            # self.gui.setup()
+            # self.gui.window.Read(timeout=0)
+            # self.gui.load(self.graph)
+            # print('displaying for {}s. click X to close earlier.'.format(t/1e3))
+            # self.gui.window.Read(timeout=t)
         except ImportError:
             print('ERR: make sure you have the floorplan module containing '
                   'the FloorGUI class and try again')
@@ -126,7 +127,10 @@ class Floor:
         handles the bottleneck zones on the grid, where people cannot all pass
         at once. for simplicity, bottlenecks are treated as queues
         '''
-        raise NotImplementedError
+        #for i in range(len(self.bottlenecks)):
+            #self.bottlenecks[i].exitBottleNeck()
+        self.bottlenecks[0].exitBottleNeck(self.sim)
+        # raise NotImplementedError
 
 
     def update_people(self):
@@ -136,12 +140,14 @@ class Floor:
         handle the simulus scheduling part to keep it clean
         '''
         raise NotImplementedError
-       
+
 
     def simulate(self, *args):
         '''
         '''
-        raise NotImplementedError
+        self.bottlenecks[0].enterBottleNeck(self.people[0])
+        self.update_bottlenecks()
+        # raise NotImplementedError
 
 
 
@@ -169,7 +175,7 @@ def main():
     # set up random streams
     streams = [Generator(PCG64(args.random_state, i)) for i in range(4)]
     loc_strm, strat_strm, rate_strm, inst_strm = streams
-    
+
     location_sampler = loc_strm.choice
     strategy_generator = lambda: strat_strm.uniform(.5, 1)
     rate_generator = lambda: abs(rate_strm.normal(1, .5))
@@ -181,7 +187,7 @@ def main():
 
     floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    # floor.simulate() 
+    floor.simulate()
 
 
 if __name__ == '__main__':
