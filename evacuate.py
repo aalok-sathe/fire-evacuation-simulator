@@ -26,7 +26,7 @@ except ImportError:
 # local project imports
 from person import Person
 from bottleneck import Bottleneck
-
+from floorparse import FloorParser
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
@@ -48,7 +48,7 @@ class Floor:
     exit_times = []
     avg_exit = 0 # tracks sum first, then we /
 
-    def __init__(self, graph, n, location_sampler=random.sample,
+    def __init__(self, input, n, location_sampler=random.sample,
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  uniform_generator=random.uniform):
@@ -60,7 +60,9 @@ class Floor:
         n (int): number of people in the simulation
         '''
         self.sim = simulus.simulator()
-        self.graph = graph
+        self.parser = FloorParser()
+        with open(input, 'r') as f:
+            self.graph = self.parser.parse(f.read())
         self.numpeople = n
 
         self.location_sampler = location_sampler
@@ -71,11 +73,48 @@ class Floor:
         self.setup()
 
 
+    def precompute(self):
+        '''
+        precompute stats on the graph, e.g. nearest safe zone, nearest fire
+        '''
+        graph = self.graph
+
+        def bfs(target, pos): # iterative dfs
+            if graph[pos]['W']: return float('inf')
+            q = [(pos, 0)]
+            visited = set()
+            while q:
+                node, dist = q.pop()
+                if node in visited: continue
+                visited.add(node)
+
+                node = graph[node]
+                if node['W'] or node['F']: continue
+                if node[target]: return dist
+
+                for n in node['nbrs']:
+                    if n in visited: continue
+                    q = [(n, dist+1)] + q
+
+            return float('inf')
+                
+        #for i in range(self.r):
+        #    for j in range(self.c):
+        for loc in graph:
+            graph[loc]['distF'] = bfs('F', loc) 
+            graph[loc]['distS'] = bfs('S', loc)
+
+        self.graph = dict(graph.items())
+
+        return self.graph
+
+
     def setup(self):
         '''
         once we have the parameters and random variate generation methods from
         __init__, we can proceed to create instances of: people and bottlenecks
         '''
+        self.precompute()
         
         av_locs = []
         bottleneck_locs = []
@@ -210,8 +249,8 @@ def main():
 
 
     # load the graph representation of some floor plan
-    with open(args.input, 'rb') as f:
-        graph = pickle.load(f)
+    #with open(args.input, 'rb') as f:
+    #    graph = pickle.load(f)
 
     # set up random streams
     streams = [Generator(PCG64(args.random_state, i)) for i in range(4)]
@@ -219,11 +258,11 @@ def main():
     
     location_sampler = loc_strm.choice
     strategy_generator = lambda: strat_strm.uniform(.5, 1)
-    rate_generator = lambda: abs(rate_strm.normal(1, .25))
+    rate_generator = lambda: max(.1, abs(rate_strm.normal(1, .1)))
     uniform_generator = lambda: inst_strm.uniform()
 
     # create an instance of Floor
-    floor = Floor(graph, args.numpeople, location_sampler, strategy_generator,
+    floor = Floor(args.input, args.numpeople, location_sampler, strategy_generator,
                   rate_generator, uniform_generator)
 
     # floor.visualize(t=5000)
