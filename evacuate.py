@@ -41,8 +41,12 @@ class Floor:
     numdead = 0
     numsafe = 0
 
+
     bottlenecks = dict()#[]
     people = []
+
+    exit_times = []
+    avg_exit = 0 # tracks sum first, then we /
 
     def __init__(self, graph, n, location_sampler=random.sample,
                  strategy_generator=lambda: random.uniform(.5, 1.),
@@ -137,6 +141,9 @@ class Floor:
         move will return a location decided by the person, and this method will
         handle the simulus scheduling part to keep it clean
         '''
+        if self.maxtime and self.sim.now >= self.maxtime:
+            return
+
         p = self.people[person_ix]
         if not p.alive:
             self.numdead += 1
@@ -144,7 +151,10 @@ class Floor:
             return
         if p.safe:
             self.numsafe += 1
-            print('Person at {} is now SAFE'.format(p.loc))
+            p.exit_time = self.sim.now
+            self.exit_times += [p.exit_time]
+            self.avg_exit += p.exit_time
+            # print('Person at {} is now SAFE'.format(p.loc))
             return
 
         loc = p.loc
@@ -160,7 +170,7 @@ class Floor:
             self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
          
 
-    def simulate(self, *args):
+    def simulate(self, *args, **kwargs):
         '''
         sets up initial scheduling and calls the sim.run() method in simulus
         '''
@@ -170,8 +180,14 @@ class Floor:
             square = self.graph[loc]
             nbrs = square['nbrs']
             self.sim.sched(self.update_person, i, offset=1/p.rate)
-        
+       
+        if 'maxtime' in kwargs:
+            self.maxtime = kwargs['maxtime']
+        else:
+            self.maxtime = None
         self.sim.run()
+    
+        self.avg_exit /= max(self.numsafe, 1)
 
 
 def main():
@@ -186,6 +202,8 @@ def main():
                         help='number of people in the simulation (default:10)')
     parser.add_argument('-s', '--random_state', type=int, default=8675309,
                         help='aka. seed (default:8675309)')
+    parser.add_argument('-t', '--max_time', type=int, default=None,
+                        help='upper bound on the time for simulation')
     args = parser.parse_args()
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
@@ -201,7 +219,7 @@ def main():
     
     location_sampler = loc_strm.choice
     strategy_generator = lambda: strat_strm.uniform(.5, 1)
-    rate_generator = lambda: abs(rate_strm.normal(1, .5))
+    rate_generator = lambda: abs(rate_strm.normal(1, .25))
     uniform_generator = lambda: inst_strm.uniform()
 
     # create an instance of Floor
@@ -210,14 +228,18 @@ def main():
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    floor.simulate() 
+    floor.simulate(maxtime=args.max_time) 
     
     print('STATS')
-    print('{} people saved out of {} in time {:.3f}'.format(
-            floor.numsafe,
-            floor.numpeople,
-            floor.sim.now
-        ))
+
+    def printstats(desc, obj):
+        print('{:>30} {:.>30}'.format(desc, ' '+str(obj)))
+
+    printstats('total people', floor.numpeople)
+    printstats('people saved', floor.numsafe)
+    printstats('people dead', floor.numpeople - floor.numsafe)
+    printstats('total simulation time', '{:.3f}'.format(floor.sim.now))
+    printstats('average time to exit', '{:.3f}'.format(floor.avg_exit))
 
 if __name__ == '__main__':
     main()
