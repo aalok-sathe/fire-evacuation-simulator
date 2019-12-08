@@ -15,11 +15,13 @@ class Bottleneck(Queue):
 
     def enterBottleNeck(self, person):
         self.queue.append(person)
+        self.queue.numInQueue = self.queue.numInQueue + 1
         print(self.queue)
 
     def exitBottleNeck(self, sim):
         if(len(self.queue) > 0):
             newSafePerson = self.queue.pop()
+            self.queue.numInQueue = self.queue.numInQueue - 1
             newSafePerson.safe = True
             newSafePerson.exit_time = sim.now
             print(self.queue)
