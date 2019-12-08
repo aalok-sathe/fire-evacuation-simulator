@@ -10,7 +10,7 @@ from queue import Queue
 
 class Bottleneck(Queue):
     loc = None, None
-
+ 
     def __init__(self, loc):
         '''
         constructor method
