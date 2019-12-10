@@ -40,6 +40,7 @@ class Floor:
     numpeople = 0
     numdead = 0
     numsafe = 0
+    nummoving = 0
 
 
     bottlenecks = dict()#[]
@@ -145,6 +146,9 @@ class Floor:
                     self.r, self.c, len(self.people), len(av_locs)
                   ),
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
+              'detected {} fire zone(s)'.format(len([loc for loc in self.graph 
+                                                     if self.graph[loc]['F']])),
+              '\ngood luck escaping!',
               '='*79, sep='\n'
              )
 
@@ -206,7 +210,14 @@ class Floor:
             b = self.bottlenecks[target]
             b.enterBottleNeck(p)
         else:
-            self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
+            t = 1/p.rate
+            if self.sim.now + t >= (self.maxtime or float('inf')):
+                if square['S']: 
+                    self.nummoving += 1
+                else:
+                    self.numdead += 1
+            else:
+                self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
          
 
     def simulate(self, *args, **kwargs):
@@ -225,8 +236,25 @@ class Floor:
         else:
             self.maxtime = None
         self.sim.run()
-    
+   
         self.avg_exit /= max(self.numsafe, 1)
+
+
+    def stats(self):
+        '''
+        '''
+        print('STATS')
+
+        def printstats(desc, obj):
+            print('{:>30} {:.>30}'.format(desc, ' '+str(obj)))
+
+        printstats('total # people', self.numpeople)
+        printstats('# people safe', self.numsafe)
+        printstats('# people dead', self.numpeople -self.numsafe-self.nummoving)
+        printstats('# people almost there', self.nummoving)
+        print()
+        printstats('total simulation time', '{:.3f}'.format(self.sim.now))
+        printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
 
 
 def main():
@@ -235,14 +263,16 @@ def main():
     '''
     # set up and parse commandline arguments
     parser = ArgumentParser()
-    parser.add_argument('-i', '--input', type=str, default='in/floor.txt.pkl',
+    parser.add_argument('-i', '--input', type=str, default='in/singleexit.txt',
                         help='input floor plan file (default:floor.txt.pkl)')
     parser.add_argument('-n', '--numpeople', type=int, default=10,
                         help='number of people in the simulation (default:10)')
     parser.add_argument('-s', '--random_state', type=int, default=8675309,
                         help='aka. seed (default:8675309)')
-    parser.add_argument('-t', '--max_time', type=int, default=None,
-                        help='upper bound on the time for simulation')
+    parser.add_argument('-t', '--max_time', type=float, default=None,
+                        help='the building collapses at this clock tick. people'
+                             ' beginning movement before this will be assumed'
+                             ' to have moved away sufficiently (safe)')
     args = parser.parse_args()
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
@@ -269,16 +299,7 @@ def main():
     # call the simulate method to run the actual simulation
     floor.simulate(maxtime=args.max_time) 
     
-    print('STATS')
-
-    def printstats(desc, obj):
-        print('{:>30} {:.>30}'.format(desc, ' '+str(obj)))
-
-    printstats('total people', floor.numpeople)
-    printstats('people saved', floor.numsafe)
-    printstats('people dead', floor.numpeople - floor.numsafe)
-    printstats('total simulation time', '{:.3f}'.format(floor.sim.now))
-    printstats('average time to exit', '{:.3f}'.format(floor.avg_exit))
+    floor.stats() 
 
 if __name__ == '__main__':
     main()
