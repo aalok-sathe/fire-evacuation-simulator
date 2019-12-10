@@ -17,7 +17,7 @@ class FloorParser:
             if not row: continue
             sqs = row.split(';')
             rowattrs = [set(sq.strip().split(',')) for sq in sqs]
-            print(rowattrs)
+            print(' '.join([list(row)[0] for row in rowattrs]))
             grid += [rowattrs]
 
 
