@@ -246,15 +246,18 @@ class Floor:
         print('STATS')
 
         def printstats(desc, obj):
-            print('{:>30} {:.>30}'.format(desc, ' '+str(obj)))
+            print('\t', 
+                  (desc+' ').ljust(30, '.') + (' '+str(obj)).rjust(30, '.'))
 
         printstats('total # people', self.numpeople)
         printstats('# people safe', self.numsafe)
         printstats('# people dead', self.numpeople -self.numsafe-self.nummoving)
-        printstats('# people almost there', self.nummoving)
+        printstats('# people gravely injured', self.nummoving)
         print()
         printstats('total simulation time', '{:.3f}'.format(self.sim.now))
         printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
+
+        print()
 
 
 def main():
