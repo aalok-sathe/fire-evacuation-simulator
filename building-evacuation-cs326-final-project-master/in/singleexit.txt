@@ -1,9 +1,0 @@
-   S;   S;   S;   S;   S;   S;   S;   S
-   S;   W;   W;   W;   W;   W;   W;   S
-   S;   W;   N;   N;   N;   P;   W;   S
-   S;   N;   N;   F;   N;   P;   W;   S
-   S;   W;   N;   F;   N;   P;   W;   S
-   S;   W;   N;   N;   N;   P;   W;   S
-   S;   W;   W;   W;   W;   W;   W;   S
-   S;   S;   S;   S;   S;   S;   S;   S
-
