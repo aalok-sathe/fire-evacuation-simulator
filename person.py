@@ -33,7 +33,7 @@ class Person:
         self.loc = tuple(loc)
 
 
-    def move(self, nbrs):
+    def move(self, nbrs, rv=None):
         '''
         when this person has finished their current movement, we must schedule
         the next one
