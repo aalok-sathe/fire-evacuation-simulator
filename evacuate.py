@@ -44,6 +44,7 @@ class Floor:
 
 
     bottlenecks = dict()#[]
+    fires = set()
     people = []
 
     exit_times = []
@@ -52,7 +53,7 @@ class Floor:
     def __init__(self, input, n, location_sampler=random.sample,
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
-                 uniform_generator=random.uniform):
+                 person_mover=random.uniform, fire_mover=random.sample):
         '''
         constructor method
         ---
@@ -69,7 +70,8 @@ class Floor:
         self.location_sampler = location_sampler
         self.strategy_generator = strategy_generator
         self.rate_generator = rate_generator
-        self.uniform_generator = uniform_generator
+        self.person_mover = person_mover
+        self.fire_mover = fire_mover
 
         self.setup()
 
@@ -119,6 +121,7 @@ class Floor:
         
         av_locs = []
         bottleneck_locs = []
+        fire_locs = []
         
         r, c = 0, 0
         for loc, attrs in self.graph.items():
@@ -126,6 +129,7 @@ class Floor:
             c = max(c, loc[1])
             if attrs['P']: av_locs += [loc] 
             elif attrs['B']: bottleneck_locs += [loc]
+            elif attrs['F']: fire_locs += [loc]
 
         assert len(av_locs) > 0, 'ERR: no people placement locations in input'
         for i in range(self.numpeople):
@@ -137,6 +141,7 @@ class Floor:
         for loc in bottleneck_locs:
             b = Bottleneck(loc)            
             self.bottlenecks[loc] = b
+        self.fires.update(set(fire_locs))
         
         self.r, self.c = r+1, c+1
         
@@ -148,8 +153,8 @@ class Floor:
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
               'detected {} fire zone(s)'.format(len([loc for loc in self.graph 
                                                      if self.graph[loc]['F']])),
-              '\ngood luck escaping!',
-              '='*79, sep='\n'
+              '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
+              
              )
 
 
@@ -176,6 +181,46 @@ class Floor:
         at once. for simplicity, bottlenecks are treated as queues
         '''
         raise NotImplementedError
+
+
+    def update_fire(self):
+        '''
+        docstring: TODO
+        '''
+        no_fire_nbrs = [] # list, not set because more neighbors = more likely
+        for loc in self.fires:
+            # gets the square at the computed location
+            square = self.graph[loc]
+
+            # returns the full list of nbrs of the square
+            nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
+
+            # updates nbrs to exclude safe zones and spaces already on fire 
+            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs 
+                             if attrs['S'] == attrs['F'] == 0]
+            # more likely (twice) to spread to non-wall empty zone
+            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs 
+                             if attrs['W'] == attrs['S'] == attrs['F'] == 0]
+        #randomly choose a neighbor 
+        #upper = len(no_fire_nbrs)-1
+        # = random.sample(no_fire_nbrs, 1)
+        try:
+            # TODO replace with a randomgen stream draw
+            [(choice, _)] = random.sample(no_fire_nbrs, 1)
+        except ValueError as e:
+            if 'Sample larger than population' in e.args:
+                return
+            else: 
+                raise
+
+        self.graph[choice]['F'] = 1
+        self.fires.add(choice)
+
+        self.precompute()
+        self.sim.sched(self.update_fire, 
+                       offset=len(self.graph)/max(1, len(self.fires)))
+
+        return choice
 
 
     def update_person(self, person_ix):
@@ -209,6 +254,9 @@ class Floor:
         if square['B']:
             b = self.bottlenecks[target]
             b.enterBottleNeck(p)
+        elif square['F']:
+            p.alive = False
+            return
         else:
             t = 1/p.rate
             if self.sim.now + t >= (self.maxtime or float('inf')):
@@ -220,7 +268,7 @@ class Floor:
                 self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
          
 
-    def simulate(self, *args, **kwargs):
+    def simulate(self, maxtime=None, spread_fire=False):
         '''
         sets up initial scheduling and calls the sim.run() method in simulus
         '''
@@ -230,11 +278,15 @@ class Floor:
             square = self.graph[loc]
             nbrs = square['nbrs']
             self.sim.sched(self.update_person, i, offset=1/p.rate)
-       
-        if 'maxtime' in kwargs:
-            self.maxtime = kwargs['maxtime']
+
+        #updates fire initially
+        if spread_fire:
+            self.sim.sched(self.update_fire, 
+                           offset=len(self.graph)/max(1, len(self.fires)))
         else:
-            self.maxtime = None
+            print('INFO\t', 'fire won\'t spread around!')
+       
+        self.maxtime = maxtime
         self.sim.run()
    
         self.avg_exit /= max(self.numsafe, 1)
@@ -243,6 +295,7 @@ class Floor:
     def stats(self):
         '''
         '''
+        print('\n\n', '='*79, sep='')
         print('STATS')
 
         def printstats(desc, obj):
@@ -276,6 +329,8 @@ def main():
                         help='the building collapses at this clock tick. people'
                              ' beginning movement before this will be assumed'
                              ' to have moved away sufficiently (safe)')
+    parser.add_argument('-f', '--no_spread_fire', action='store_true',
+                        help='disallow fire to spread around?')
     args = parser.parse_args()
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
@@ -286,21 +341,24 @@ def main():
     #    graph = pickle.load(f)
 
     # set up random streams
-    streams = [Generator(PCG64(args.random_state, i)) for i in range(4)]
-    loc_strm, strat_strm, rate_strm, inst_strm = streams
+    streams = [Generator(PCG64(args.random_state, i)) for i in range(5)]
+    loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
     
-    location_sampler = loc_strm.choice
-    strategy_generator = lambda: strat_strm.uniform(.5, 1)
-    rate_generator = lambda: max(.1, abs(rate_strm.normal(1, .1)))
-    uniform_generator = lambda: inst_strm.uniform()
+    location_sampler = loc_strm.choice # used to make initial placement of pax
+    strategy_generator = lambda: strat_strm.uniform(.5, 1) # used to pick move
+    rate_generator = lambda: max(.1, abs(rate_strm.normal(1, .1))) # used to
+                                                                   # decide
+                                                                   # strategies
+    person_mover = lambda: pax_strm.uniform() # 
+    fire_mover = lambda: fire_strm.uniform() # 
 
     # create an instance of Floor
-    floor = Floor(args.input, args.numpeople, location_sampler, strategy_generator,
-                  rate_generator, uniform_generator)
+    floor = Floor(args.input, args.numpeople, location_sampler, 
+                  strategy_generator, rate_generator, person_mover, fire_mover)
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    floor.simulate(maxtime=args.max_time) 
+    floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire) 
     
     floor.stats() 
 
