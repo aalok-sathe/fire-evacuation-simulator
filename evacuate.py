@@ -218,7 +218,7 @@ class Floor:
 
         self.precompute()
         self.sim.sched(self.update_fire, 
-                       offset=len(self.graph)/max(1, len(self.fires)))
+                       offset=len(self.graph)/max(1, len(self.fires))**2)
 
         return choice
 
@@ -266,7 +266,9 @@ class Floor:
                     self.numdead += 1
             else:
                 self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
-         
+        
+        # self.sim.show_calendar()
+
 
     def simulate(self, maxtime=None, spread_fire=False):
         '''
@@ -282,7 +284,7 @@ class Floor:
         #updates fire initially
         if spread_fire:
             self.sim.sched(self.update_fire, 
-                           offset=len(self.graph)/max(1, len(self.fires)))
+                           offset=1)#len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
        
