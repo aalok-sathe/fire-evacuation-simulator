@@ -19,8 +19,8 @@ class Plotter:
 
         # create discrete colormap
         cmap = colors.ListedColormap(['lightblue', 'black', 'red',
-                                      'green', 'darkblue'])
-        bounds = [-.5, .5, 1.5, 2.5, 3.5, 4.5]
+                                      'lightgreen', 'darkblue', '#520000'])
+        bounds = [-.5, .5, 1.5, 2.5, 3.5, 4.5, 5.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
         plt.imshow(gdata, cmap=cmap, norm=norm)
@@ -35,7 +35,8 @@ class Plotter:
     def draw_people(self, x=[], y=[], c=[]):
         '''
         '''
-        cmap = colors.ListedColormap(['blue', 'black', 'darkgreen', 'purple'])
+        #                               alive      ded    safe    unknown
+        cmap = colors.ListedColormap(['blue', '#2b0000', 'darkgreen', 'yellow'])
         bounds = [-.5, .5, 1.5, 2.5, 3.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
@@ -64,6 +65,8 @@ class Plotter:
                 if att not in attrs: continue
                 if attrs[att]:
                     gdata[loc] = attrmap[att]
+                    if att == 'W' and attrs['F']:
+                        gdata[loc] = 5
                     break
 
         # use the accumulated data to draw the grid

@@ -233,7 +233,7 @@ class Floor:
         self.sim.sched(self.update_fire,
                        offset=len(self.graph)/max(1, len(self.fires))**rt)
 
-        self.visualize(self.animation_delay/2)
+        self.visualize(self.animation_delay/max(1, len(self.fires))**rt)
 
         return choice
 
@@ -291,7 +291,7 @@ class Floor:
             else:
                 self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
 
-        if (1+person_ix) % (self.numpeople**.5) == 0:
+        if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
 
         # self.sim.show_calendar()
@@ -345,7 +345,7 @@ class Floor:
         print()
 
         # print(self.parser.tostr(self.graph))
-        self.visualize(1)
+        self.visualize(4)
 
 
 def main():
