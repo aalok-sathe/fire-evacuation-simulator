@@ -123,9 +123,12 @@ class Floor:
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
             c = max(c, loc[1])
-            if attrs['P']: av_locs += [loc] 
-            elif attrs['B']: bottleneck_locs += [loc]
-            elif attrs['F']: fire_locs += [loc]
+            if attrs['P']: 
+                av_locs += [loc] 
+            elif attrs['B']: 
+                bottleneck_locs += [loc]
+            elif attrs['F']: 
+                fire_locs.append(loc)
 
         assert len(av_locs) > 0, 'ERR: no people placement locations in input'
         for i in range(self.numpeople):
@@ -174,30 +177,29 @@ class Floor:
         '''
         raise NotImplementedError
 
-    def update_fire(self, fire_locs):
-        no_fire_nbrs = []
-        for loc in fire_locs:
-            #gets the square at the computed location
-            square = self.graph[loc]
-
-            #returns the full list of nbrs based on the square
-            nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-
-            #updates nbrs to exclude safe zones and spaces already on fire 
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs if attrs['S'] == 0 and attrs['F'] == 0]
-        print(no_fire_nbrs)
+    def update_fire(self):
+        fire_locs = self.fire_locs
+        print(self.graph[(3, 4)])
+        no_fire_nbrs = [nbr_loc for fire_loc in fire_locs for nbr_loc in self.graph[fire_loc]['nbrs'] if not self.graph[nbr_loc]['S'] and not self.graph[nbr_loc]['F']]
+        print(no_fire_nbrs) 
+        if not no_fire_nbrs:
+            return
         #randomly choose a neighbor 
         #upper = len(no_fire_nbrs)-1
         # = random.sample(no_fire_nbrs, 1)
-        ix = random.randint(0, len(no_fire_nbrs))
+        ix = random.randint(0, (len(no_fire_nbrs)-1))
         print(ix)
-        [(choice, _)] = no_fire_nbrs[ix]
+        choice = no_fire_nbrs[ix]
         print(choice)
-        raise
+        #raise
         self.graph[choice]['F'] = 1
+        print(self.graph[choice]['F'])
+
+        fire_locs.append(choice)
 
         self.precompute()
-        self.sim.sched(self.update_fire, self.fire_locs, offset = len(self.graph)/len(self.fire_locs))
+        # self.sim.sched(self.update_fire, self.fire_locs, offset = len(self.graph)/len(self.fire_locs))
+        self.sim.sched(self.update_fire, offset = 100)
 
     def update_person(self, person_ix):
         '''
@@ -209,11 +211,17 @@ class Floor:
             return
 
         p = self.people[person_ix]
-        if not p.alive:
+        # person is dead or is safe, don't update
+        if not p.alive or p.safe:
+            return
+
+        # figure if the person is dying now or just reach safe location
+        if self.graph[p.loc]['F']:
+            p.alive = 0
             self.numdead += 1
             print('Person at {} is now DED'.format(p.loc))
             return
-        if p.safe:
+        if self.graph[p.loc]['S']:
             self.numsafe += 1
             p.exit_time = self.sim.now
             self.exit_times += [p.exit_time]
@@ -221,6 +229,7 @@ class Floor:
             # print('Person at {} is now SAFE'.format(p.loc))
             return
 
+        # person move
         loc = p.loc
         square = self.graph[loc]
         nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
@@ -246,7 +255,7 @@ class Floor:
             self.sim.sched(self.update_person, i, offset=1/p.rate)
 
         #updates fire initially
-        self.sim.sched(self.update_fire, self.fire_locs, offset = len(self.graph)/len(self.fire_locs))
+        self.sim.sched(self.update_fire, offset = len(self.graph)/len(self.fire_locs))
        
         if 'maxtime' in kwargs:
             self.maxtime = kwargs['maxtime']
