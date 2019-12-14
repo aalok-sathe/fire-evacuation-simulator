@@ -182,7 +182,7 @@ class Floor:
 
         for key in self.bottlenecks:
             #print(key, self.bottlenecks[key])
-            personLeaving = self.bottlenecks[key].exitBottleNeck(self.sim)
+            personLeaving = self.bottlenecks[key].exitBottleNeck()
             if(personLeaving != None):
                 self.sim.sched(self.update_person, personLeaving.id, offset = 0)
 
