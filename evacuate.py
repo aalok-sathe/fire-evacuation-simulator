@@ -55,6 +55,7 @@ class Floor:
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  person_mover=random.uniform, fire_mover=random.sample,
                  gui=False, animation_delay=.1,
+                 verbose=False,
                  **kwargs):
         '''
         constructor method
@@ -68,6 +69,7 @@ class Floor:
         self.plotter = Plotter()
         self.animation_delay = animation_delay
         self.gui = gui
+        self.verbose = verbose
 
         with open(input, 'r') as f:
             self.graph = self.parser.parse(f.read())
@@ -251,15 +253,17 @@ class Floor:
         if self.graph[p.loc]['F'] or not p.alive:
             p.alive = False
             self.numdead += 1
-            print('Person {} at {} could not make it in time XX'.format(
-                                                                p.id, p.loc))
+            if self.verbose:
+                print('Person {} at {} could not make it in time XX'.format(
+                                                                  p.id, p.loc))
             return
         if p.safe:
             self.numsafe += 1
             p.exit_time = self.sim.now
             self.exit_times += [p.exit_time]
             self.avg_exit += p.exit_time
-            print('Person {} is now SAFE!'.format(p.id))
+            if self.verbose:
+                print('Person {} is now SAFE!'.format(p.id))
             return
 
         loc = p.loc
@@ -270,8 +274,9 @@ class Floor:
         if not target:
             p.alive = False
             self.numdead += 1
-            print('Person {} at {} had nowhere to move but fire XX'.format(
-                                                                  p.id, p.loc))
+            if self.verbose:
+                print('Person {} at {} had nowhere to move but fire XX'.format(
+                                                                   p.id, p.loc))
             return
         square = self.graph[target]
         if square['B']:
@@ -370,6 +375,8 @@ def main():
                         help='disallow fire to spread around?')
     parser.add_argument('-g', '--no_graphical_output', action='store_true',
                         help='disallow graphics?')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='show excessive output?')
     parser.add_argument('-d', '--fire_rate', type=float, default=2,
                         help='rate of spread of fire (this is the exponent)')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
@@ -399,7 +406,7 @@ def main():
     floor = Floor(args.input, args.numpeople, location_sampler,
                   strategy_generator, rate_generator, person_mover, fire_mover,
                   fire_rate=args.fire_rate,
-                  animation_delay=args.animation_delay)
+                  animation_delay=args.animation_delay, verbose=args.verbose)
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
