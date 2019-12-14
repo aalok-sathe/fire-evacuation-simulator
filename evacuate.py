@@ -175,7 +175,21 @@ class Floor:
         handles the bottleneck zones on the grid, where people cannot all pass
         at once. for simplicity, bottlenecks are treated as queues
         '''
-        raise NotImplementedError
+
+        for key in self.bottlenecks:
+            #print(key, self.bottlenecks[key])
+            personLeaving = self.bottlenecks[key].exitBottleNeck(self.sim)
+            if(personLeaving != None):
+                self.sim.sched(self.update_person, personLeaving.id, offset = 0)
+
+        if self.numsafe + self.numdead >= self.numpeople:
+            return
+
+        if self.maxtime and self.sim.now >= self.maxtime:
+            return
+        else:
+            self.sim.sched(self.update_bottlenecks, offset = 1)
+
 
 
     def update_fire(self):
@@ -302,6 +316,7 @@ class Floor:
             print('INFO\t', 'fire won\'t spread around!')
 
         self.maxtime = maxtime
+        self.sim.sched(self.update_bottlenecks, offset = 1)
         self.sim.run()
 
         self.avg_exit /= max(self.numsafe, 1)
