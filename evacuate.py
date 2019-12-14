@@ -219,7 +219,7 @@ class Floor:
         self.sim.sched(self.update_fire,
                        offset=len(self.graph)/max(1, len(self.fires))**rt)
 
-        self.visualize(self.animation_delay/2**rt)
+        self.visualize(self.animation_delay/max(1, len(self.fires))**rt)
 
         return choice
 
