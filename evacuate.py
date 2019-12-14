@@ -321,9 +321,9 @@ class Floor:
                            offset=1)#len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
+        self.sim.sched(self.update_bottlenecks, offset=1)
 
         self.maxtime = maxtime
-        self.sim.sched(self.update_bottlenecks, offset = 1)
         self.sim.run()
 
         self.avg_exit /= max(self.numsafe, 1)
@@ -361,8 +361,10 @@ def main():
     '''
     # set up and parse commandline arguments
     parser = ArgumentParser()
-    parser.add_argument('-i', '--input', type=str, default='in/singleexit.txt',
-                        help='input floor plan file (default:floor.txt.pkl)')
+    parser.add_argument('-i', '--input', type=str,
+                        default='in/twoexitbottleneck.py',
+                        help='input floor plan file (default: '
+                             'in/twoexitbottleneck.py)')
     parser.add_argument('-n', '--numpeople', type=int, default=10,
                         help='number of people in the simulation (default:10)')
     parser.add_argument('-r', '--random_state', type=int, default=8675309,
