@@ -58,7 +58,7 @@ Model
 We model a floor plan as a 2D grid. A cell neighbors four other cells (top, bottom, left, right).
 Each cell has attributes: it can be normal (N), wall (W), bottleneck (B), fire (F), safe zone (S), or people (P).
 You can use a GUI program to design and generate input per our specification; 
-visit [this repository](https://github.com/aalok-sathe/egress-floorplan-design). Some sample inputs are available in `in/'.
+visit [this repository](https://github.com/aalok-sathe/egress-floorplan-design). Some sample inputs are available in `in/`.
 
 The goal is for as many people to get to the safe zones, away from danger's reach. 
 To solve this problem, we represent this 2D grid using a graph with nodes and edges between adjacent nodes (neighbors). 
