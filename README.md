@@ -1,21 +1,64 @@
 # agent-based building evacuation simulation
 
-final project for cs326 simulation
+this simple simulation program simulates a moving danger situation (e.g., fire) 
+and people in a confined space trying to escape away from danger to get to safe zone(s).
+additional constraints are modeled as queues, where a limited number of people can pass at once.
 
+final project for [cs326: 'simulation'](http://cs.richmond.edu/courses/index.html)
+
+see it in action!
+
+![action](https://i.imgur.com/JsQBlWi.png)
 
 Usage
 ---
-`python3 evacuate.py`
+```
+usage: evacuate.py [-h] [-i INPUT] [-n NUMPEOPLE] [-r RANDOM_STATE]
+                   [-t MAX_TIME] [-f] [-g] [-v] [-d FIRE_RATE]
+                   [-a ANIMATION_DELAY]
 
-For help: `python3 evacuate.py -h`
+optional arguments:
+  -h, --help            show this help message and exit
+  
+  -i INPUT, --input INPUT
+                        input floor plan file
+                        
+  -n NUMPEOPLE, --numpeople NUMPEOPLE
+                        number of people in the simulation (default: 10)
+                        
+  -r RANDOM_STATE, --random_state RANDOM_STATE
+                        aka. seed (default: 8675309)
+                        
+  -t MAX_TIME, --max_time MAX_TIME
+                        the building collapses at this clock tick. people
+                        beginning movement before this will be assumed to have
+                        moved away sufficiently (no default argument)
+                        
+  -d FIRE_RATE, --fire_rate FIRE_RATE
+                        exponent of spread of fire rate function exponentiator
+                        fire grows exponentially. d determines how exponentially.
+                        
+  -a ANIMATION_DELAY, --animation_delay ANIMATION_DELAY
+                        delay per frame of animated visualization (s, default: 1)
+                        
+  -f, --no_spread_fire  disallow fire to spread around? (default: false)
+  
+  -g, --no_graphical_output
+                        disallow graphics? (default: false)
+                        
+  -v, --verbose         show excessive output? (default: false)
+                         
+
+```
+
 
 
 Model
 ---
 We model a floor plan as a 2D grid. A cell neighbors four other cells (top, bottom, left, right).
 Each cell has attributes: it can be normal (N), wall (W), bottleneck (B), fire (F), safe zone (S), or people (P).
-You can use a GUI program to design input per our specification; 
-visit [this repository](https://github.com/aalok-sathe/egress-floorplan-design).
+You can use a GUI program to design and generate input per our specification; 
+visit [this repository](https://github.com/aalok-sathe/egress-floorplan-design). Some sample inputs are available in `in/'.
 
 The goal is for as many people to get to the safe zones, away from danger's reach. 
 To solve this problem, we represent this 2D grid using a graph with nodes and edges between adjacent nodes (neighbors). 
@@ -33,27 +76,6 @@ or until everyone escapes, allowing for studying mean escape time, and time afte
 variability.
 
 
-Expected directory structure
----
-```
-./
-├── bottleneck.py
-├── evacuate.py
-├── person.py
-│
-├── floorplan
-│   ├── floorplan.py
-│   ├── __init__.py
-│   ├── README.md
-│   └── requirements.txt
-│
-├── in
-│   └── floor.txt.pkl
-│
-├── README.md
-└── requirements.txt
-```
-
 
 People
 ---
@@ -62,21 +84,3 @@ People
 - Aalok S
 
 
-
-[Scratch work; WIP; to be updated] Pipeline (potential idea)
----
-1. Parse a floor plan
-2. Preprocess building floor as a graph: locate people spots, danger locs;
-    assign numbers of people at each spot (random?); rank exits to each by dist
-    (run BFS to find out, this is an unweighted graph) 
-3. Simulate: person can move one unit distance in one unit time; look at queues
-     at each exit: 'exit' isn't rigorously defined, it's anyhow a person can get
-     to the safe zone. Any time there is >1 people at a square, it's a queue.
-    SSQ instance at each square as needed. But then how do we make people try
-     a different exit when they're stuck? Maybe need queues only at exits, and 
-     we could define exits rigorously.
-4. Report statistics/questions to think about:
-    - Total time
-    - Persons outside building after max time T
-    - Amount of time taken based on number of people
-    - Evenly distributed/clustered people in an area? 
