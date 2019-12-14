@@ -11,7 +11,7 @@ meaningfully callable to run a simulation experiment
 '''
 
 # stdlib imports
-import simulus 
+import simulus
 import sys
 import pickle
 import random
@@ -27,12 +27,13 @@ except ImportError:
 from person import Person
 from bottleneck import Bottleneck
 from floorparse import FloorParser
+from viz import Plotter
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
 class Floor:
     sim = None
-    graph = None
+    graph = None # dictionary (x,y) --> attributes
     gui = None
     r = None
     c = None
@@ -42,18 +43,19 @@ class Floor:
     numsafe = 0
     nummoving = 0
 
-
     bottlenecks = dict()#[]
     fires = set()
     people = []
 
     exit_times = []
-    avg_exit = 0 # tracks sum first, then we /
+    avg_exit = 0 # tracks sum first, then we divide
 
     def __init__(self, input, n, location_sampler=random.sample,
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
-                 person_mover=random.uniform, fire_mover=random.sample):
+                 person_mover=random.uniform, fire_mover=random.sample,
+                 animation_delay=.1,
+                 **kwargs):
         '''
         constructor method
         ---
@@ -63,6 +65,9 @@ class Floor:
         '''
         self.sim = simulus.simulator()
         self.parser = FloorParser()
+        self.plotter = Plotter()
+        self.animation_delay = animation_delay
+
         with open(input, 'r') as f:
             self.graph = self.parser.parse(f.read())
         self.numpeople = n
@@ -72,6 +77,8 @@ class Floor:
         self.rate_generator = rate_generator
         self.person_mover = person_mover
         self.fire_mover = fire_mover
+
+        self.kwargs = kwargs
 
         self.setup()
 
@@ -100,11 +107,11 @@ class Floor:
                     q = [(n, dist+1)] + q
 
             return float('inf')
-                
+
         #for i in range(self.r):
         #    for j in range(self.c):
         for loc in graph:
-            graph[loc]['distF'] = bfs('F', loc) 
+            graph[loc]['distF'] = bfs('F', loc)
             graph[loc]['distS'] = bfs('S', loc)
 
         self.graph = dict(graph.items())
@@ -118,61 +125,49 @@ class Floor:
         __init__, we can proceed to create instances of: people and bottlenecks
         '''
         self.precompute()
-        
+
         av_locs = []
         bottleneck_locs = []
         fire_locs = []
-        
+
         r, c = 0, 0
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
             c = max(c, loc[1])
-            if attrs['P']: av_locs += [loc] 
+            if attrs['P']: av_locs += [loc]
             elif attrs['B']: bottleneck_locs += [loc]
             elif attrs['F']: fire_locs += [loc]
 
         assert len(av_locs) > 0, 'ERR: no people placement locations in input'
         for i in range(self.numpeople):
-            p = Person(self.rate_generator(),
+            p = Person(i, self.rate_generator(),
                        self.strategy_generator(),
                        self.location_sampler(av_locs))
             self.people += [p]
 
         for loc in bottleneck_locs:
-            b = Bottleneck(loc)            
+            b = Bottleneck(loc)
             self.bottlenecks[loc] = b
         self.fires.update(set(fire_locs))
-        
+
         self.r, self.c = r+1, c+1
-        
+
         print(
               '='*79,
               'initialized a {}x{} floor with {} people in {} locations'.format(
                     self.r, self.c, len(self.people), len(av_locs)
                   ),
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
-              'detected {} fire zone(s)'.format(len([loc for loc in self.graph 
+              'detected {} fire zone(s)'.format(len([loc for loc in self.graph
                                                      if self.graph[loc]['F']])),
               '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
-              
              )
 
 
-    def visualize(self, t=10000):
+    def visualize(self, t):
         '''
         '''
-        try:
-            from floorplan.floorplan import FloorGUI
-            self.gui = FloorGUI(self.r, self.c)
-            self.gui.setup()
-            self.gui.window.Read(timeout=0)
-            self.gui.load(self.graph)
-            print('displaying for {}s. click X to close earlier.'.format(t/1e3))
-            self.gui.window.Read(timeout=t)
-        except ImportError:
-            print('ERR: make sure you have the floorplan module containing '
-                  'the FloorGUI class and try again')
-
+        self.plotter.visualize(self.graph, self.people, t)
 
 
     def update_bottlenecks(self):
@@ -187,6 +182,12 @@ class Floor:
         '''
         docstring: TODO
         '''
+        if self.numsafe + self.numdead >= self.numpeople:
+            print('INFO:', 'people no longer moving, so stopping fire spread')
+            return
+        if self.maxtime and self.sim.now >= self.maxtime:
+            return
+
         no_fire_nbrs = [] # list, not set because more neighbors = more likely
         for loc in self.fires:
             # gets the square at the computed location
@@ -195,30 +196,30 @@ class Floor:
             # returns the full list of nbrs of the square
             nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
 
-            # updates nbrs to exclude safe zones and spaces already on fire 
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs 
+            # updates nbrs to exclude safe zones and spaces already on fire
+            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs
                              if attrs['S'] == attrs['F'] == 0]
             # more likely (twice) to spread to non-wall empty zone
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs 
+            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs
                              if attrs['W'] == attrs['S'] == attrs['F'] == 0]
-        #randomly choose a neighbor 
-        #upper = len(no_fire_nbrs)-1
-        # = random.sample(no_fire_nbrs, 1)
+
         try:
             # TODO replace with a randomgen stream draw
-            [(choice, _)] = random.sample(no_fire_nbrs, 1)
+            # [(choice, _)] = random.sample(no_fire_nbrs, 1)
+            (choice, _) = self.fire_mover(no_fire_nbrs)
         except ValueError as e:
-            if 'Sample larger than population' in e.args:
-                return
-            else: 
-                raise
+            print('INFO:', 'fire is everywhere, so stopping fire spread')
+            return
 
         self.graph[choice]['F'] = 1
         self.fires.add(choice)
 
         self.precompute()
-        self.sim.sched(self.update_fire, 
-                       offset=len(self.graph)/max(1, len(self.fires))**2)
+        rt = self.kwargs['fire_rate']
+        self.sim.sched(self.update_fire,
+                       offset=len(self.graph)/max(1, len(self.fires))**rt)
+
+        self.visualize(self.animation_delay/2)
 
         return choice
 
@@ -233,40 +234,52 @@ class Floor:
             return
 
         p = self.people[person_ix]
-        if not p.alive:
+        if self.graph[p.loc]['F'] or not p.alive:
+            p.alive = False
             self.numdead += 1
-            print('Person at {} is now DED'.format(p.loc))
+            print('Person {} at {} could not make it in time XX'.format(
+                                                                p.id, p.loc))
             return
         if p.safe:
             self.numsafe += 1
             p.exit_time = self.sim.now
             self.exit_times += [p.exit_time]
             self.avg_exit += p.exit_time
-            # print('Person at {} is now SAFE'.format(p.loc))
+            print('Person {} is now SAFE!'.format(p.id))
             return
 
         loc = p.loc
         square = self.graph[loc]
         nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-        
+
         target = p.move(nbrs)
+        if not target:
+            p.alive = False
+            self.numdead += 1
+            print('Person {} at {} had nowhere to move but fire XX'.format(
+                                                                  p.id, p.loc))
+            return
         square = self.graph[target]
         if square['B']:
             b = self.bottlenecks[target]
             b.enterBottleNeck(p)
         elif square['F']:
             p.alive = False
+            self.numdead += 1
             return
         else:
             t = 1/p.rate
             if self.sim.now + t >= (self.maxtime or float('inf')):
-                if square['S']: 
+                if square['S']:
                     self.nummoving += 1
                 else:
                     self.numdead += 1
             else:
                 self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
-        
+
+        if (1+person_ix) % (self.numpeople**.5) == 0:
+            self.visualize(t=self.animation_delay/len(self.people)/2)
+
         # self.sim.show_calendar()
 
 
@@ -283,14 +296,14 @@ class Floor:
 
         #updates fire initially
         if spread_fire:
-            self.sim.sched(self.update_fire, 
+            self.sim.sched(self.update_fire,
                            offset=1)#len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
-       
+
         self.maxtime = maxtime
         self.sim.run()
-   
+
         self.avg_exit /= max(self.numsafe, 1)
 
 
@@ -301,18 +314,23 @@ class Floor:
         print('STATS')
 
         def printstats(desc, obj):
-            print('\t', 
+            print('\t',
                   (desc+' ').ljust(30, '.') + (' '+str(obj)).rjust(30, '.'))
 
         printstats('total # people', self.numpeople)
         printstats('# people safe', self.numsafe)
-        printstats('# people dead', self.numpeople -self.numsafe-self.nummoving)
+        printstats('# people dead', self.numpeople-self.numsafe-self.nummoving)
         printstats('# people gravely injured', self.nummoving)
         print()
         printstats('total simulation time', '{:.3f}'.format(self.sim.now))
-        printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
-
+        if self.avg_exit:
+            printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
+        else:
+            printstats('average time to safe', 'NA')
         print()
+
+        # print(self.parser.tostr(self.graph))
+        self.visualize(1)
 
 
 def main():
@@ -325,7 +343,7 @@ def main():
                         help='input floor plan file (default:floor.txt.pkl)')
     parser.add_argument('-n', '--numpeople', type=int, default=10,
                         help='number of people in the simulation (default:10)')
-    parser.add_argument('-s', '--random_state', type=int, default=8675309,
+    parser.add_argument('-r', '--random_state', type=int, default=8675309,
                         help='aka. seed (default:8675309)')
     parser.add_argument('-t', '--max_time', type=float, default=None,
                         help='the building collapses at this clock tick. people'
@@ -333,6 +351,10 @@ def main():
                              ' to have moved away sufficiently (safe)')
     parser.add_argument('-f', '--no_spread_fire', action='store_true',
                         help='disallow fire to spread around?')
+    parser.add_argument('-d', '--fire_rate', type=float, default=2,
+                        help='rate of spread of fire (this is the exponent)')
+    parser.add_argument('-a', '--animation_delay', type=float, default=1,
+                        help='delay per frame of animated visualization (s)')
     args = parser.parse_args()
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
@@ -345,24 +367,26 @@ def main():
     # set up random streams
     streams = [Generator(PCG64(args.random_state, i)) for i in range(5)]
     loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
-    
+
     location_sampler = loc_strm.choice # used to make initial placement of pax
     strategy_generator = lambda: strat_strm.uniform(.5, 1) # used to pick move
     rate_generator = lambda: max(.1, abs(rate_strm.normal(1, .1))) # used to
                                                                    # decide
                                                                    # strategies
-    person_mover = lambda: pax_strm.uniform() # 
-    fire_mover = lambda: fire_strm.uniform() # 
+    person_mover = lambda: pax_strm.uniform() #
+    fire_mover = lambda a: fire_strm.choice(a) #
 
     # create an instance of Floor
-    floor = Floor(args.input, args.numpeople, location_sampler, 
-                  strategy_generator, rate_generator, person_mover, fire_mover)
+    floor = Floor(args.input, args.numpeople, location_sampler,
+                  strategy_generator, rate_generator, person_mover, fire_mover,
+                  fire_rate=args.fire_rate,
+                  animation_delay=args.animation_delay)
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire) 
-    
-    floor.stats() 
+    floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire)
+
+    floor.stats()
 
 if __name__ == '__main__':
     main()
