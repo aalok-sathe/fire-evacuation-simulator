@@ -34,7 +34,7 @@ pp = pprint.PrettyPrinter(indent=4).pprint
 class Floor:
     sim = None
     graph = None # dictionary (x,y) --> attributes
-    gui = None
+    gui = False
     r = None
     c = None
 
@@ -54,7 +54,7 @@ class Floor:
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  person_mover=random.uniform, fire_mover=random.sample,
-                 animation_delay=.1,
+                 gui=False, animation_delay=.1,
                  **kwargs):
         '''
         constructor method
@@ -67,6 +67,7 @@ class Floor:
         self.parser = FloorParser()
         self.plotter = Plotter()
         self.animation_delay = animation_delay
+        self.gui = gui
 
         with open(input, 'r') as f:
             self.graph = self.parser.parse(f.read())
@@ -167,7 +168,8 @@ class Floor:
     def visualize(self, t):
         '''
         '''
-        self.plotter.visualize(self.graph, self.people, t)
+        if self.gui:
+            self.plotter.visualize(self.graph, self.people, t)
 
 
     def update_bottlenecks(self):
@@ -283,10 +285,13 @@ class Floor:
         # self.sim.show_calendar()
 
 
-    def simulate(self, maxtime=None, spread_fire=False):
+    def simulate(self, maxtime=None, spread_fire=False, **kwargs):
         '''
         sets up initial scheduling and calls the sim.run() method in simulus
         '''
+        for k in kwargs:
+            self.k = kwargs[k]
+
         # set initial movements of all the people
         for i, p in enumerate(self.people):
             loc = tuple(p.loc)
@@ -351,6 +356,8 @@ def main():
                              ' to have moved away sufficiently (safe)')
     parser.add_argument('-f', '--no_spread_fire', action='store_true',
                         help='disallow fire to spread around?')
+    parser.add_argument('-g', '--no_graphical_output', action='store_true',
+                        help='disallow graphics?')
     parser.add_argument('-d', '--fire_rate', type=float, default=2,
                         help='rate of spread of fire (this is the exponent)')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
@@ -384,7 +391,8 @@ def main():
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire)
+    floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire,
+                   gui=not args.no_graphical_output)
 
     floor.stats()
 
