@@ -5,22 +5,21 @@ people: Nick B., Matthew J., Aalok S.
 In this file we define a useful class to model bottlenecks, 'Bottleneck'
 '''
 
-from queue import Queue
 from collections import deque
 
-class Bottleneck(Queue):
+class Bottleneck():
     loc = None, None
     queue = None
     numInQueue = 0
 
-    def enterBottleNeck(self, person):
+    def enterBottleNeck(self, person, throughput=1):
         self.queue.append(person)
-        self.numInQueue = self.numInQueue + 1
+        self.numInQueue = self.numInQueue + throughput
 
-    def exitBottleNeck(self, sim):
+    def exitBottleNeck(self, throughput=1):
         if(len(self.queue) > 0):
             personLeaving = self.queue.pop()
-            self.numInQueue = self.numInQueue - 1
+            self.numInQueue = self.numInQueue - throughput
             return personLeaving
         else:
             return None
@@ -31,6 +30,5 @@ class Bottleneck(Queue):
         ---
         loc (tuple xy): location (coordinates) of this bottleneck
         '''
-        super().__init__()
         self.loc = loc
-        queue = deque()
+        self.queue = deque()
