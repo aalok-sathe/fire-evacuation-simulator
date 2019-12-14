@@ -7,7 +7,8 @@ In this file we define a useful class for the agent, 'Person'
 
 import random
 
-class Person: 
+class Person:
+    id = None
     rate = None # how long it takes to move one unit distance
     strategy = None # probability with which agent picks closes exit
     loc = None, None # variable tracking this agent's location (xy coordinates)
@@ -20,7 +21,7 @@ class Person:
                   # starting point
 
 
-    def __init__(self, rate:float=1.0, strategy:float=.7, loc:tuple=None):
+    def __init__(self, id, rate:float=1.0, strategy:float=.7, loc:tuple=None):
         '''
         constructor method
         ---
@@ -28,6 +29,7 @@ class Person:
         strategy
         loc
         '''
+        self.id = id
         self.rate = rate
         self.strategy = strategy
         self.loc = tuple(loc)
@@ -41,12 +43,14 @@ class Person:
         graph (dict): a dictionary-like graph storing the floor plan according
                       to our specification
 
-        return: tuple, location the agent decided to move to 
+        return: tuple, location the agent decided to move to
         '''
-        nbrs = [(loc, attrs) for loc, attrs in nbrs if not attrs['F']]
-
+        nbrs = [(loc, attrs) for loc, attrs in nbrs
+                if not(attrs['F'] or attrs['W'])]
+        if not nbrs: return None
         loc, attrs = min(nbrs, key=lambda tup: tup[1]['distS'])
-        # print('Person at {} is moving to {}'.format(self.loc, loc))
+        # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
+        # print('Person {} is {} away from safe'.format(self.id, attrs['distS']))
         self.loc = loc
         if attrs['S']:
             self.safe = True
@@ -54,6 +58,3 @@ class Person:
             self.alive = False
 
         return loc
-
-
-
