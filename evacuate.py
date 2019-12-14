@@ -220,8 +220,6 @@ class Floor:
                              if attrs['W'] == attrs['S'] == attrs['F'] == 0]
 
         try:
-            # TODO replace with a randomgen stream draw
-            # [(choice, _)] = random.sample(no_fire_nbrs, 1)
             (choice, _) = self.fire_mover(no_fire_nbrs)
         except ValueError as e:
             print('INFO:', 'fire is everywhere, so stopping fire spread')
@@ -299,12 +297,11 @@ class Floor:
         # self.sim.show_calendar()
 
 
-    def simulate(self, maxtime=None, spread_fire=False, **kwargs):
+    def simulate(self, maxtime=None, spread_fire=False, gui=False):
         '''
         sets up initial scheduling and calls the sim.run() method in simulus
         '''
-        for k in kwargs:
-            self.k = kwargs[k]
+        self.gui = gui
 
         # set initial movements of all the people
         for i, p in enumerate(self.people):
