@@ -15,7 +15,7 @@ Usage
 ```
 usage: evacuate.py [-h] [-i INPUT] [-n NUMPEOPLE] [-r RANDOM_STATE]
                    [-t MAX_TIME] [-f] [-g] [-v] [-d FIRE_RATE]
-                   [-a ANIMATION_DELAY]
+                   [-b BOTTLENECK_DELAY] [-a ANIMATION_DELAY]
 
 optional arguments:
   -h, --help            show this help message and exit
