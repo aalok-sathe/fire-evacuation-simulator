@@ -21,7 +21,7 @@ optional arguments:
   -h, --help            show this help message and exit
   
   -i INPUT, --input INPUT
-                        input floor plan file
+                        input floor plan file (default: in/twoexitbottleneck.py)
                         
   -n NUMPEOPLE, --numpeople NUMPEOPLE
                         number of people in the simulation (default: 10)
@@ -38,6 +38,9 @@ optional arguments:
                         exponent of spread of fire rate function exponentiator
                         fire grows exponentially. d determines how exponentially.
                         
+  -b BOTTLENECK_DELAY, --bottleneck_delay BOTTLENECK_DELAY
+                        how long until the next person may leave the B
+                        
   -a ANIMATION_DELAY, --animation_delay ANIMATION_DELAY
                         delay per frame of animated visualization (s, default: 1)
                         
@@ -48,9 +51,21 @@ optional arguments:
                         
   -v, --verbose         show excessive output? (default: false)
                          
-
 ```
 
+### Sample output
+The goal of the program is to run simulations and output useful statistics
+about the simulations, in a manner that helps understand the effects of
+various parameters the simulation is called with, on the outcome.
+```
+STATS
+	 total # people .......................................... 32
+	 # people safe ........................................... 32
+	 # people dead ............................................ 0
+	 # people gravely injured ................................. 0
+
+	 average time to safe ................................ 10.088
+```
 
 
 Model
