@@ -1,3 +1,4 @@
 randomgen>=1.16.6
 simulus>=1.2.1
 PySimpleGUI>=4.8.0
+matplotlib
