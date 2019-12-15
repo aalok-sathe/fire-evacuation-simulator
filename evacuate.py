@@ -54,6 +54,7 @@ class Floor:
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  person_mover=random.uniform, fire_mover=random.sample,
+                 fire_rate=2, bottleneck_delay=1,
                  gui=False, animation_delay=.1,
                  verbose=False,
                  **kwargs):
@@ -80,7 +81,9 @@ class Floor:
         self.rate_generator = rate_generator
         self.person_mover = person_mover
         self.fire_mover = fire_mover
-
+        
+        self.fire_rate = fire_rate
+        self.bottleneck_delay = bottleneck_delay
         self.kwargs = kwargs
 
         self.setup()
@@ -184,7 +187,7 @@ class Floor:
             #print(key, self.bottlenecks[key])
             personLeaving = self.bottlenecks[key].exitBottleNeck()
             if(personLeaving != None):
-                self.sim.sched(self.update_person, personLeaving.id, offset = 0)
+                self.sim.sched(self.update_person, personLeaving.id, offset=0)
 
         if self.numsafe + self.numdead >= self.numpeople:
             return
@@ -192,7 +195,8 @@ class Floor:
         if self.maxtime and self.sim.now >= self.maxtime:
             return
         else:
-            self.sim.sched(self.update_bottlenecks, offset = 1)
+            self.sim.sched(self.update_bottlenecks, 
+                           offset=self.bottleneck_delay)
 
 
 
@@ -231,7 +235,7 @@ class Floor:
         self.fires.add(choice)
 
         self.precompute()
-        rt = self.kwargs['fire_rate']
+        rt = self.fire_rate
         self.sim.sched(self.update_fire,
                        offset=len(self.graph)/max(1, len(self.fires))**rt)
 
@@ -321,7 +325,7 @@ class Floor:
                            offset=1)#len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
-        self.sim.sched(self.update_bottlenecks, offset=1)
+        self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)
 
         self.maxtime = maxtime
         self.sim.run()
@@ -344,7 +348,7 @@ class Floor:
         printstats('# people dead', self.numpeople-self.numsafe-self.nummoving)
         printstats('# people gravely injured', self.nummoving)
         print()
-        printstats('total simulation time', '{:.3f}'.format(self.sim.now))
+        # printstats('total simulation time', '{:.3f}'.format(self.sim.now))
         if self.avg_exit:
             printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
         else:
@@ -362,7 +366,7 @@ def main():
     # set up and parse commandline arguments
     parser = ArgumentParser()
     parser.add_argument('-i', '--input', type=str,
-                        default='in/twoexitbottleneck.py',
+                        default='in/twoexitbottleneck.txt',
                         help='input floor plan file (default: '
                              'in/twoexitbottleneck.py)')
     parser.add_argument('-n', '--numpeople', type=int, default=10,
@@ -381,6 +385,8 @@ def main():
                         help='show excessive output?')
     parser.add_argument('-d', '--fire_rate', type=float, default=2,
                         help='rate of spread of fire (this is the exponent)')
+    parser.add_argument('-b', '--bottleneck_delay', type=float, default=1,
+                        help='how long until the next person may leave the B')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
                         help='delay per frame of animated visualization (s)')
     args = parser.parse_args()
@@ -408,6 +414,7 @@ def main():
     floor = Floor(args.input, args.numpeople, location_sampler,
                   strategy_generator, rate_generator, person_mover, fire_mover,
                   fire_rate=args.fire_rate,
+                  bottleneck_delay=args.bottleneck_delay,
                   animation_delay=args.animation_delay, verbose=args.verbose)
 
     # floor.visualize(t=5000)
