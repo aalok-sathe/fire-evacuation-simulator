@@ -31,7 +31,7 @@ from viz import Plotter
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
-class Floor:
+class FireSim:
     sim = None
     graph = None # dictionary (x,y) --> attributes
     gui = False
@@ -202,7 +202,16 @@ class Floor:
 
     def update_fire(self):
         '''
-        docstring: TODO
+        method that controls the spread of fire. we use a rudimentary real-world
+        model that spreads fire exponentially faster proportional to the amount
+        of fire already on the floor. empty nodes are more likely to get set
+        on fire the more lit neighbors they have. empty plain nodes are more
+        likely to burn than walls.
+        fire spreads proportional to (grid_area)/(fire_area)**exp
+        the method uses the 'fire_rate' instance variable as the 'exp' in the
+        expression above.
+        fire stops spreading once it's everywhere, or when all the people have
+        stopped moving (when all are dead or safe, not moving)
         '''
         if self.numsafe + self.numdead >= self.numpeople:
             print('INFO:', 'people no longer moving, so stopping fire spread')
@@ -335,6 +344,7 @@ class Floor:
 
     def stats(self):
         '''
+        computes and outputs useful stats about the simulation for nice output
         '''
         print('\n\n', '='*79, sep='')
         print('STATS')
@@ -361,7 +371,9 @@ class Floor:
 
 def main():
     '''
-    driver method for this file
+    driver method for this file. the firesim class can be used via imports as
+    well, but this driver file provides a comprehensive standalone interface
+    to the simulation
     '''
     # set up and parse commandline arguments
     parser = ArgumentParser()
@@ -393,11 +405,6 @@ def main():
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
 
-
-    # load the graph representation of some floor plan
-    #with open(args.input, 'rb') as f:
-    #    graph = pickle.load(f)
-
     # set up random streams
     streams = [Generator(PCG64(args.random_state, i)) for i in range(5)]
     loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
@@ -411,11 +418,11 @@ def main():
     fire_mover = lambda a: fire_strm.choice(a) #
 
     # create an instance of Floor
-    floor = Floor(args.input, args.numpeople, location_sampler,
-                  strategy_generator, rate_generator, person_mover, fire_mover,
-                  fire_rate=args.fire_rate,
-                  bottleneck_delay=args.bottleneck_delay,
-                  animation_delay=args.animation_delay, verbose=args.verbose)
+    floor = FireSim(args.input, args.numpeople, location_sampler,
+                    strategy_generator, rate_generator, person_mover,
+                    fire_mover, fire_rate=args.fire_rate,
+                    bottleneck_delay=args.bottleneck_delay,
+                    animation_delay=args.animation_delay, verbose=args.verbose)
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
