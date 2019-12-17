@@ -1,0 +1,16 @@
+   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S
+   S;   W;   W;   W;   W;   W;   N;   N;   N;   W;   W;   W;   W;   W;   S
+   S;   W;   N;   N;   N;   W;   N;   N;   N;   B;   N;   N;   N;   W;   S
+   S;   W;   N;   P;   N;   W;   N;   N;   N;   W;   N;   N;   N;   W;   S
+   S;   W;   N;   N;   N;   B;   N;   N;   N;   W;   N;   P;   N;   W;   S
+   S;   W;   W;   W;   W;   W;   N;   N;   N;   W;   N;   N;   N;   W;   S
+   S;   W;   N;   N;   N;   W;   N;   N;   N;   W;   W;   W;   W;   W;   S
+   S;   W;   F;   N;   N;   B;   N;   N;   N;   B;   N;   N;   N;   W;   S
+   S;   W;   F;   F;   N;   W;   N;   N;   N;   W;   N;   N;   P;   W;   S
+   S;   W;   W;   W;   W;   W;   N;   N;   N;   W;   W;   W;   W;   W;   S
+   S;   W;   N;   N;   N;   W;   N;   N;   N;   W;   N;   N;   N;   W;   S
+   S;   W;   N;   P;   N;   W;   N;   N;   N;   B;   N;   N;   P;   W;   S
+   S;   W;   N;   N;   N;   B;   N;   N;   N;   W;   N;   N;   N;   W;   S
+   S;   W;   W;   W;   W;   W;   N;   N;   N;   W;   W;   W;   W;   W;   S
+   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S;   S
+
