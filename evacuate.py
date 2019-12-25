@@ -16,7 +16,6 @@ import sys
 import pickle
 import random
 import pprint
-# from floorplan.floorplan import FloorGUI
 from argparse import ArgumentParser
 try:
     from randomgen import PCG64, RandomGenerator as Generator
@@ -27,7 +26,6 @@ except ImportError:
 from person import Person
 from bottleneck import Bottleneck
 from floorparse import FloorParser
-from viz import Plotter
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
@@ -43,7 +41,7 @@ class FireSim:
     numsafe = 0
     nummoving = 0
 
-    bottlenecks = dict()#[]
+    bottlenecks = dict()
     fires = set()
     people = []
 
@@ -54,8 +52,7 @@ class FireSim:
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  person_mover=random.uniform, fire_mover=random.sample,
-                 fire_rate=2, bottleneck_delay=1,
-                 gui=False, animation_delay=.1,
+                 fire_rate=2, bottleneck_delay=1, animation_delay=.1,
                  verbose=False,
                  **kwargs):
         '''
@@ -66,10 +63,8 @@ class FireSim:
         n (int): number of people in the simulation
         '''
         self.sim = simulus.simulator()
-        self.parser = FloorParser()
-        self.plotter = Plotter()
+        self.parser = FloorParser() 
         self.animation_delay = animation_delay
-        self.gui = gui
         self.verbose = verbose
 
         with open(input, 'r') as f:
@@ -95,7 +90,7 @@ class FireSim:
         '''
         graph = self.graph
 
-        def bfs(target, pos): # iterative dfs
+        def bfs(target, pos):
             if graph[pos]['W']: return float('inf')
             q = [(pos, 0)]
             visited = set()
@@ -112,10 +107,9 @@ class FireSim:
                     if n in visited: continue
                     q = [(n, dist+1)] + q
 
+            # unreachable
             return float('inf')
 
-        #for i in range(self.r):
-        #    for j in range(self.c):
         for loc in graph:
             graph[loc]['distF'] = bfs('F', loc)
             graph[loc]['distS'] = bfs('S', loc)
@@ -267,7 +261,8 @@ class FireSim:
             p.alive = False
             self.numdead += 1
             if self.verbose:
-                print('Person {} at {} could not make it in time XX'.format(
+                print('{:>6.2f}\tPerson {:>3} at {} could not make it'.format(
+                                                                  self.sim.now,
                                                                   p.id, p.loc))
             return
         if p.safe:
@@ -276,7 +271,8 @@ class FireSim:
             self.exit_times += [p.exit_time]
             self.avg_exit += p.exit_time
             if self.verbose:
-                print('Person {} is now SAFE!'.format(p.id))
+                print('{:>6.2f}\tPerson {:>3} is now SAFE!'.format(self.sim.now, 
+                                                               p.id))
             return
 
         loc = p.loc
@@ -288,7 +284,8 @@ class FireSim:
             p.alive = False
             self.numdead += 1
             if self.verbose:
-                print('Person {} at {} had nowhere to move but fire XX'.format(
+                print('{:>6.2f}\tPerson {:>3} at {} got trapped in fire'.format(
+                                                                   self.sim.now,
                                                                    p.id, p.loc))
             return
         square = self.graph[target]
@@ -320,6 +317,9 @@ class FireSim:
         sets up initial scheduling and calls the sim.run() method in simulus
         '''
         self.gui = gui
+        if self.gui: 
+            from viz import Plotter
+            self.plotter = Plotter()
 
         # set initial movements of all the people
         for i, p in enumerate(self.people):
@@ -393,7 +393,7 @@ def main():
                         help='disallow fire to spread around?')
     parser.add_argument('-g', '--no_graphical_output', action='store_true',
                         help='disallow graphics?')
-    parser.add_argument('-v', '--verbose', action='store_true',
+    parser.add_argument('-o', '--output', action='store_true',
                         help='show excessive output?')
     parser.add_argument('-d', '--fire_rate', type=float, default=2,
                         help='rate of spread of fire (this is the exponent)')
@@ -422,7 +422,7 @@ def main():
                     strategy_generator, rate_generator, person_mover,
                     fire_mover, fire_rate=args.fire_rate,
                     bottleneck_delay=args.bottleneck_delay,
-                    animation_delay=args.animation_delay, verbose=args.verbose)
+                    animation_delay=args.animation_delay, verbose=args.output)
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
