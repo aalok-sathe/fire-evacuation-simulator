@@ -94,8 +94,7 @@ variability.
 
 People
 ---
+- Aalok S
 - Nick B
 - Matthew J
-- Aalok S
-
 
